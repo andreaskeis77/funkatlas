@@ -1,0 +1,11 @@
+# Secrets & local-only config (E11: plaintext device registry never leaves this machine)
+.env
+config/devices.yaml
+
+# Python
+.venv/
+__pycache__/
+
+# Runtime data (single source of truth per data kind: measurements -> SQLite, raw evidence -> logs/)
+logs/
+data/
