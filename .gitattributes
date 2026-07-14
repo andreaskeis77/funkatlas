@@ -1,6 +1,7 @@
 * text=auto eol=lf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+*.bin binary
 *.sqlite3 binary
 *.png binary
 *.jpg binary
