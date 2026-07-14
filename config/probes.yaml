@@ -1,0 +1,11 @@
+# Probe targets/cadence for THIS device (defaults live in code — config.DEFAULT_PROBES).
+# Key-merge: only keys named here override; unlisted defaults survive.
+ping:
+  count: 4
+  timeout_ms: 2000
+  targets:
+    gateway: 192.168.178.1   # circle A (FRITZ!Box 7590) — LaptopAndi's home circle
+    internet: 1.1.1.1
+dns:
+  names:
+    - example.com

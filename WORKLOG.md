@@ -52,3 +52,17 @@
 - **Tests:** Parser-Goldwerte DE/EN, CP850==UTF-8-Äquivalenz, disconnected-Degradation,
   Garbage→[], Collector-Integration (raw+stg+JSONL, logs==DB je Registry). 36 passed.
 - **Parks:** keine.
+
+## 2026-07-14 · Lauf 2 (M1) · T1.2 „ping/dns + Messrunde"
+
+- **Gebaut:** `probes/ping.py` (Harvest: Bytes-Regex Zeit=/time=/`<1ms`/Komma-Dezimal,
+  Jitter/Loss-Mathematik; D5-Fix: Targets/count/timeout aus `config.probes()` statt
+  hartcodiert — count wird in Command UND parse durchgereicht) · `probes/dns.py`
+  (Resolve-Timing, injizierbarer Resolver+Timer, degradiert bei OSError) ·
+  `probes/round.py` (`collect_probe_once`: ein ts je Runde, ein Commit) ·
+  Schema v3 additiv: `stg_ping` + `stg_dns` + Indizes · `config/probes.yaml` +
+  `DEFAULT_PROBES` in config.py (Key-Merge).
+- **Tests:** Ping-Regressionen (cp1252-Umlaut-Bytes, Zeitüberschreitung→100 %,
+  Partial-Loss, mehr Matches als count) · DNS ok/fail hermetisch · volle Runde
+  (ein ts über alle Domains, JSONL je Domain, logs==DB für ping). 47 passed.
+- **Parks:** keine.

@@ -37,3 +37,20 @@ def _load(name: str) -> dict:
 def load_merged(name: str, defaults: dict) -> dict:
     """Code defaults key-merged with the optional YAML override (YAML wins per key)."""
     return {**defaults, **_load(name)}
+
+
+# Probe defaults for LaptopAndi (circle A). Per-device overrides via
+# config/probes.yaml or FUNKATLAS_CONFIG_DIR; the central per-device config
+# distribution arrives with M2.
+DEFAULT_PROBES: dict = {
+    "ping": {
+        "count": 4,
+        "timeout_ms": 2000,
+        "targets": {"gateway": "192.168.178.1", "internet": "1.1.1.1"},
+    },
+    "dns": {"names": ["example.com"]},
+}
+
+
+def probes() -> dict:
+    return load_merged("probes.yaml", DEFAULT_PROBES)

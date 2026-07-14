@@ -5,6 +5,7 @@ config/devices.yaml
 # Python
 .venv/
 __pycache__/
+*.egg-info/
 
 # Runtime data (single source of truth per data kind: measurements -> SQLite, raw evidence -> logs/)
 logs/

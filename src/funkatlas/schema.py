@@ -25,10 +25,10 @@ from datetime import UTC, datetime
 
 from funkatlas import settings as _settings_mod
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Subset a future backup count-probe verifies after restore (keep in sync on rename).
-CORE_TABLES = ("raw_probe", "heartbeat", "stg_wifi_status")
+CORE_TABLES = ("raw_probe", "heartbeat", "stg_wifi_status", "stg_ping", "stg_dns")
 
 
 def now_utc_iso() -> str:
@@ -124,10 +124,35 @@ CREATE TABLE stg_wifi_status (
 )
 """
 
+_CREATE_STG_PING_SQL = """
+CREATE TABLE stg_ping (
+    ts_utc    TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    target    TEXT,
+    host      TEXT,
+    rtt_ms    REAL,
+    jitter_ms REAL,
+    loss_pct  REAL
+)
+"""
+
+_CREATE_STG_DNS_SQL = """
+CREATE TABLE stg_dns (
+    ts_utc        TEXT NOT NULL,
+    device_id     TEXT NOT NULL,
+    name          TEXT,
+    ok            INTEGER,
+    resolve_ms    REAL,
+    address_count INTEGER
+)
+"""
+
 _FACT_TABLES: tuple[tuple[str, str], ...] = (
     ("raw_probe", _CREATE_RAW_PROBE_SQL),
     ("heartbeat", _CREATE_HEARTBEAT_SQL),
     ("stg_wifi_status", _CREATE_STG_WIFI_STATUS_SQL),
+    ("stg_ping", _CREATE_STG_PING_SQL),
+    ("stg_dns", _CREATE_STG_DNS_SQL),
 )
 
 _CREATE_INDEXES: tuple[tuple[str, str], ...] = (
@@ -137,6 +162,8 @@ _CREATE_INDEXES: tuple[tuple[str, str], ...] = (
         "idx_stg_wifi_status_dev_ts",
         "CREATE INDEX idx_stg_wifi_status_dev_ts ON stg_wifi_status(device_id, ts_utc)",
     ),
+    ("idx_stg_ping_dev_ts", "CREATE INDEX idx_stg_ping_dev_ts ON stg_ping(device_id, ts_utc)"),
+    ("idx_stg_dns_dev_ts", "CREATE INDEX idx_stg_dns_dev_ts ON stg_dns(device_id, ts_utc)"),
 )
 
 
