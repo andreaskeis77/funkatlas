@@ -8,14 +8,24 @@ Diese Datei wird von Claude Code beim Session-Start automatisch geladen. Sie ist
 
 ---
 
-## PROJEKT — AUSFÜLLEN JE PROJEKT
-<!-- Projekt-spezifisch. Beim Einsetzen in ein Repo ausfüllen; beim Mergen mit einer bestehenden CLAUDE.md die vorhandenen Projekt-Fakten HIER übernehmen. -->
-- **Produkt (ein Absatz):** <was ist das, für wen>
-- **Stack / Topologie:** <Sprachen, Frameworks, DB, Hosting/VPS>
-- **Öffentliche Endpunkte / Health:** <URLs, /healthz, /status>
-- **Standard-Befehle:** <z. B. `./task.cmd quality-gates` · `test` · `server` · `handoff`>
-- **Entscheidungslog:** siehe `docs/PROJECT_STATE.md` <oder inline: E1…En>
-- **Bekannte Verstöße / GOTCHAs (Ist ≠ Ziel):** <ehrlich auflisten, was noch NICHT methodik-konform ist — z. B. „Kat.4-Tests fehlen", „kein Staging">
+## PROJEKT — FunkAtlas
+- **Produkt (ein Absatz):** FunkAtlas ist die private Multi-Netz-WLAN-Analyseplattform für das Haus Keis: Mess-Probes auf LaptopAndi und Dell (später Android) erfassen dauerhaft Signal, Band, AP/BSSID, Ping/Jitter/DNS und Roaming-Events in beiden Netz-Kreisen (A: Telekom-DSL/FRITZ!Box 7590 + Repeater 3000 AX · B: congstar-5G/Netgear M3 + FRITZ!Box 6850 als Client); eine Zentrale auf LaptopAndi sammelt, korreliert mit der Router-Innensicht und beantwortet: Wo hakt es, warum, und hat eine Optimierung *messbar* etwas gebracht (Experiment-Schleife E7). Nachfolger des Legacy-Projekts `wlan` (Harvest, kein Fork — E2/E15).
+- **Stack / Topologie:** Python 3.12 · SQLite/WAL (Medallion raw→stg→mart, EIN DB-Writer) · FastAPI (Ingest-API, nur LAN, Token) · APScheduler · server-rendered Dashboard · **kein Docker** (E3: Probe braucht natives WLAN-Interface). Windows (LaptopAndi = Dev + Probe + Zentrale; Dell = Probe). Kein Cloud-Hosting — alles bleibt im Haus.
+- **Öffentliche Endpunkte / Health:** keine öffentlichen — Ingest/Dashboard binden nur ins LAN, Token-Auth, kein Inbound aus dem Internet. Health/Status-Seite ab M3 (`product-state.json` als Quelle der Projekt-Seite).
+- **Standard-Befehle:** entstehen in M0 (`task.cmd quality-gates` · `test` · `server` — Muster aus Legacy-`wlan` geharvestet); bis dahin: `python -m pytest`.
+- **Entscheidungslog:** E1–E15 in `docs/GROBKONZEPT.md` §1; Fortschreibung in `docs/PROJECT_STATE.md` (entsteht in M0).
+- **Bekannte Verstöße / GOTCHAs (Ist ≠ Ziel):** Projekt in Konzept-Phase — noch kein Gate, keine Tests, kein PROJECT_STATE (alles M0). TR-064-Zugang zur 7590 unverifiziert (E14 — erster Live-Schritt in M5). Netgear-M3-Schnittstelle undokumentiert (M7-Spike). Geerbte Domänen-GOTCHAs: TR-064-`SignalStrength` = **Prozent, nicht dBm** · Dämpfung/SNR in 0,1-dB-Einheiten · DSL-Syncraten in kbit/s · Byteraten nur aus TotalBytes-Delta ableiten · Repeater-TR-064 antwortet 401 → Mesh-Sicht über die Box · Windows-`ping` via subprocess **nie `text=True`** (OEM-Codepage).
+
+### EISERNE PROJEKT-REGELN (aus E1–E15)
+- **Router strikt read-only:** ausschließlich `Get*`-Aufrufe auf 7590/6850/M3 — nie Konfiguration schreiben (E8). Änderungen setzt der Mensch um; das System misst.
+- **Netzwechsel der Probe nur als geplante, protokollierte Messrunde** mit Standort-Tag und Rückkehr-Garantie (E8) — nie als stiller Nebeneffekt.
+- **Klartext-Geräte-Registry `config/devices.yaml` bleibt lokal** (gitignored, E11); Repo/Fixtures/Log-Beispiele pseudonymisiert.
+- **Merge-Gate hermetisch:** offline gegen sanitisierte Fixtures, auch wenn Router erreichbar sind; echte Calls nur unter `network`-Marker (bewusster separater Live-Smoke).
+- **Speedtest-Budget-Wächter:** Kreis B hat 160 GB/Monat (E10); Messbudget Default 8 GB/Monat, konfigurierbar — hartes Stopp-Verhalten, kein Weichspülen.
+- **Frozen Zone (nur additiv, ab Einfrierung):** Ingest-API-Contract Probe→Core · `logs/`-Layout + JSONL-Feldnamen · Threshold-/Metrik-Taxonomie · `product-state.json`-Schema.
+
+### REPORTING-REGEL (E13)
+Owner-Kommunikation (Andreas) immer in **Meilenstein-/Feature-Sprache** mit Bezug auf `docs/ROADMAP.md`; Technik-Detail nur auf Nachfrage. Antwort auf „Wo stehen wir?" hat genau drei Teile: **(1) zuletzt fertig · (2) in Arbeit · (3) als Nächstes.** `docs/ROADMAP.md` wird **im selben Arbeitsblock** fortgeschrieben, in dem Meilenstein-Fortschritt passiert — sonst gilt die Änderung als unvollständig.
 
 ---
 
