@@ -23,11 +23,14 @@ verifiziert Optimierungen per Vorher/Nachher-Experiment. Nachfolger von
 
 ## Stand
 
-- **M0 in Arbeit** (Lauf 1 nach Execution Plan v2):
-  - T0.1 Gerüst + Gate: ✅ 2026-07-14 — Paket `funkatlas` (settings/config/schema/gate),
-    Task-Runner + Wrapper, Pre-Commit-Hooks (core.hooksPath), CI (windows-latest = Gate),
-    hermetische Testbasis (`FUNKATLAS_DISABLE_DOTENV` vor Import, tmp_db), Gate `GESAMT: PASS`.
-  - T0.2 Minimal-Harvest (logsink + Collect-Kern + logs==DB): offen.
+- **M0 ✅ (2026-07-14):** T0.1 Gerüst + Gate (Paket, Task-Runner, Hooks, CI,
+  hermetische Testbasis) · T0.2 Minimal-Harvest (logsink mit device_id,
+  Collect-Kern, logs==DB-Maschinerie) · Review-Panel (3 Lenses, 20 Findings)
+  ausgewertet, alle Major/Minor gefixt oder bewusst dokumentiert. 66 Tests,
+  Gate `GESAMT: PASS`, CI grün.
+- **M1 🔨 (Lauf 2):** T1.1 wifi-status ✅ (netsh-Parser DE/EN, Bytes-Disziplin,
+  Schema v2) · T1.2 ping/dns + Messrunde ✅ (Schema v3, ein ts je Runde) ·
+  T1.3 Supervisor/Nachtlauf: in Arbeit.
 
 ## Bekannte Verstöße / GOTCHAs (Ist ≠ Ziel, ehrlich)
 
@@ -37,5 +40,10 @@ verifiziert Optimierungen per Vorher/Nachher-Experiment. Nachfolger von
 - Geerbte Domänen-GOTCHAs: siehe CLAUDE.md PROJEKT-Block (Signal=Prozent,
   0,1-dB, kbit/s, TotalBytes-Delta, Repeater-401, ping nie `text=True`).
 - Baseline-Befund `docs/EXECUTION_PLAN_M0_M1.md:69` = Falsch-Positiv
-  (Keyword-Detektor auf Doku-Prosa), bewusst in `.secrets.baseline` akzeptiert.
+  (Keyword-Detektor auf Doku-Prosa), bewusst in `.secrets.baseline` akzeptiert;
+  zwei `pragma: allowlist secret` in Tests (Testdaten-Literale).
 - `mart_*`-Schicht (Medallion) existiert noch nicht — kommt mit M3/M4.
+- Pre-Commit scannt Working-Tree-Inhalte, nicht Staged-Blobs (Gate + CI sind
+  der Backstop; Härtung via `git show :<path>` = Backlog).
+- CI installiert ungepinnte Deps (Lockfile/Constraints = Backlog); Token ist
+  auf `contents: read` beschränkt.

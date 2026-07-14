@@ -14,8 +14,8 @@
 
 | # | Meilenstein | Danach kannst du … | Status |
 |---|---|---|---|
-| M0 | Projektfundament | (noch nichts sehen — aber alles Weitere steht auf sicherem Boden) | ⬜ |
-| M1 | Erste Messwerte | zum ersten Mal echte Zahlen deines WLANs sehen | ⬜ |
+| M0 | Projektfundament | (noch nichts sehen — aber alles Weitere steht auf sicherem Boden) | ✅ 2026-07-14 |
+| M1 | Erste Messwerte | zum ersten Mal echte Zahlen deines WLANs sehen | 🔨 |
 | M2 | Zentrale & zweites Gerät | Messwerte beider Laptops in einem gemeinsamen Datenpool sammeln | ⬜ |
 | M3 | Dashboard v1 | dein Netz im Browser sehen — auch vom Handy | ⬜ |
 | M4 | Durchsatz & Call-Tauglichkeit | „Reicht die Leitung gerade für Teams?" mit einem Blick beantworten | ⬜ |
@@ -31,13 +31,13 @@
 
 ## Die Meilensteine im Detail
 
-### M0 — Projektfundament ⬜
-**Danach kannst du:** noch nichts Sichtbares — aber jede spätere Funktion entsteht abgesichert (Tests, Qualitäts-Gate, saubere Regeln) und die bewährten FRITZ!Box-Bausteine aus dem Vorgängerprojekt sind übernommen.
-**Inhalt:** Privates Repo `funkatlas`, Arbeitsregeln (`CLAUDE.md`), Qualitäts-Gate, geerntete FRITZ-Adapter aus `wlan`.
-**Fertig, wenn:** das Gate auf dem Gerüst `GESAMT: PASS` meldet und die geernteten Bausteine ihre Tests bestehen.
+### M0 — Projektfundament ✅ (2026-07-14)
+**Danach kannst du:** noch nichts Sichtbares — aber jede spätere Funktion entsteht abgesichert (Tests, Qualitäts-Gate, saubere Regeln) und die bewährten Kern-Bausteine aus dem Vorgängerprojekt sind übernommen.
+**Inhalt:** Privates Repo `funkatlas`, Arbeitsregeln (`CLAUDE.md`), Qualitäts-Gate, geerntete Kern-Bausteine (Datenbank-Fundament, Log-Ablage mit Geräte-Kennung, Messrunden-Kern). *Anpassung aus deinem Go: die FRITZ-Router-Bausteine wandern nach M5.*
+**Fertig, wenn:** das Gate auf dem Gerüst `GESAMT: PASS` meldet und die geernteten Bausteine ihre Tests bestehen. ✅ *Erfüllt: Gate grün, 66 Tests, unabhängiges Review-Panel durchlaufen, alle Funde behoben.*
 *Agent-Notiz: 1–2 Tranchen · nacht-tauglich: ja · Checkpoint: keiner.*
 
-### M1 — Erste Messwerte ⬜
+### M1 — Erste Messwerte 🔨
 **Danach kannst du:** auf LaptopAndi die ersten echten Zahlen sehen: Signalstärke, Band, verbundener AP, Ping-Zeiten — und über Nacht laufen lassen für eine erste Ruhe-Referenz.
 **Inhalt:** Mess-Programm (Probe) v0: WLAN-Status + Ping/DNS, Speicherung lokal (Datenbank + `logs/`).
 **Fertig, wenn:** eine Nacht Messreihe vorliegt und der „logs == Datenbank"-Test grün ist.
