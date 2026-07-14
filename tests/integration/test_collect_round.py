@@ -56,6 +56,43 @@ def test_full_round_shares_one_ts(tmp_db, tmp_path):
         assert files, domain
 
 
+def test_partial_failure_keeps_sibling_domains_consistent(tmp_db, tmp_path):
+    """One failing probe must not kill the round, roll back siblings, or let
+    DB and JSONL diverge (the M1 review panel's major finding)."""
+
+    def broken_ping(args):
+        raise OSError("ping.exe unavailable")
+
+    summary = collect_probe_once(
+        tmp_db,
+        device_id="testdevice",
+        ts="2026-07-14T04:00:00Z",
+        log_dir=tmp_path,
+        wifi_runner=_fake_wifi,
+        ping_runner=broken_ping,
+        dns_resolver=_fake_resolver,
+        cfg=CFG,
+    )
+    assert summary["errors"] == {"ping": "OSError"}
+    assert summary["wifi_status"] == 1 and summary["ping"] == 0 and summary["dns"] == 1
+
+    # committed DB rows and JSONL lines agree per domain — no divergence
+    for table, domain, expected in (
+        ("stg_wifi_status", "wifi_status", 1),
+        ("stg_ping", "ping", 0),
+        ("stg_dns", "dns", 1),
+    ):
+        db = tmp_db.execute(f"SELECT COUNT(*) c FROM {table}").fetchone()["c"]
+        files = list((tmp_path / "metrics" / "testdevice" / domain).glob("*.jsonl"))
+        lines = sum(len(f.read_text(encoding="utf-8").splitlines()) for f in files)
+        assert db == expected, table
+        assert lines == expected, domain
+
+    # raw insurance of the successful domains survived
+    raw = tmp_db.execute("SELECT COUNT(*) c FROM raw_probe").fetchone()["c"]
+    assert raw == 2  # wifi + dns
+
+
 def test_ping_logs_equal_db(tmp_db, tmp_path):
     collect_probe_once(
         tmp_db,

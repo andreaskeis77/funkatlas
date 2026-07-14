@@ -61,3 +61,23 @@ def test_german_disconnected_degrades_to_none_fields():
 def test_garbage_output_yields_no_interfaces():
     assert wifi_status.parse(b"") == []
     assert wifi_status.parse(b"\xff\xfe garbage \x00") == []
+
+
+def test_two_interfaces_stay_isolated():
+    """A second adapter (USB dongle, Wi-Fi Direct) must not bleed fields into
+    or out of the first interface block."""
+    two = load_fixture_bytes("netsh_interfaces_de_connected.bin") + (
+        "\r\n"
+        "    Name                   : WLAN 2\r\n"
+        "    Beschreibung            : USB Wireless Adapter\r\n"
+        "    Physische Adresse       : aa:bb:cc:00:00:03\r\n"
+        "    Status                  : Nicht verbunden\r\n"
+    ).encode("utf-8")
+    rows = wifi_status.parse(two)
+    assert len(rows) == 2
+    first, second = rows
+    assert first["connected"] == 1 and first["ssid"] == "REDACTED_SSID"
+    assert first["signal_pct"] == 59  # untouched by the second block
+    assert second["interface"] == "WLAN 2"
+    assert second["connected"] == 0
+    assert second["ssid"] is None and second["band"] is None and second["signal_pct"] is None

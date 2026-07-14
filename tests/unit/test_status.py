@@ -26,6 +26,17 @@ def test_gap_detection(tmp_db):
     assert stats["last"] == "2026-07-14T03:00:00Z"
 
 
+def test_window_filter_excludes_old_heartbeats(tmp_db):
+    """Week-old heartbeats must not make a dead night look healthy."""
+    _seed(
+        tmp_db,
+        ["2026-07-13T10:00:00Z", "2026-07-14T11:00:00Z", "2026-07-14T11:30:00Z"],
+    )
+    stats = heartbeat_stats(tmp_db, hours=24, now="2026-07-14T12:00:00Z")
+    assert stats["count"] == 2  # the 25h-old stamp is outside the window
+    assert stats["max_gap_s"] == 1800.0  # computed only from in-window stamps
+
+
 def test_no_heartbeats_message(tmp_db):
     report = heartbeat_report(tmp_db, hours=24)
     assert "lief nicht" in report

@@ -48,11 +48,16 @@ def register_domain(table: str, columns: tuple[str, ...]) -> None:
 def insert_raw(
     conn: sqlite3.Connection, ts: str, device_id: str, source: str, payload: dict
 ) -> None:
-    """Raw insurance: verbatim payload, never transformed."""
+    """Raw insurance: verbatim payload, never transformed.
+
+    Commits immediately — the raw evidence must survive even when the
+    subsequent parse/staging step fails (that is its whole purpose).
+    """
     conn.execute(
         "INSERT INTO raw_probe (ts_utc, device_id, source, payload_json) VALUES (?, ?, ?, ?)",
         (ts, device_id, source, json.dumps(payload, ensure_ascii=False, sort_keys=True)),
     )
+    conn.commit()
 
 
 def insert_stg(
@@ -81,7 +86,15 @@ def twin_write(
     parsed: dict,
     log_dir: str | Path | None = None,
 ) -> Path:
-    """DB row and JSONL record from the same dict — logs == DB by construction."""
+    """DB row and JSONL record from the same dict — logs == DB by construction.
+
+    Per-row commit BEFORE the JSONL append: measurements are independent facts,
+    not a transaction. A later failure can therefore never roll back a row
+    whose JSONL line already exists (which would silently break logs == DB);
+    the residual window is a failing log write after commit, which raises and
+    is visible to the caller.
+    """
     insert_stg(conn, table, ts, device_id, parsed)
+    conn.commit()
     record = {"ts_utc": ts, "device_id": device_id, **parsed}
     return logsink.write_metric(domain, record, log_dir)

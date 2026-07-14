@@ -109,3 +109,19 @@
   {wifi_status: 1, ping: 2, dns: 1} unter device_id `laptopandi` (lokale .env);
   Smoke-Daten vor Produktivstart zurückgesetzt. Keine Router-Calls.
 - **Parks:** keine.
+
+## 2026-07-14 · Review-Panel M1, Teil 1 (test-coverage-Lens, 5 Findings) → Fixes
+
+- **Design-Fix (Major-Finding an der Wurzel behoben statt Divergenz zu pinnen):**
+  Teilausfall einer Runde konnte logs≠DB erzeugen (JSONL geschrieben, DB-Rollback).
+  Neu: Messwerte = unabhängige Fakten — `insert_raw` committet sofort (Beweiszweck!),
+  `twin_write` committet je Zeile VOR dem JSONL-Append, `collect_probe_once`
+  isoliert Domains (anmutige Entartung: eine kaputte Probe killt weder Runde noch
+  Geschwister; `errors`-Map im Summary). Test pinnt: ping-OSError → wifi/dns-Zeilen
+  in DB UND JSONL identisch, ping nirgends, raw-Versicherung überlebt.
+- **Neue Tests (Rest der Findings):** __main__-Dispatch (--once/--max-runtime-
+  Forwarding, heartbeat, version) · Zwei-Interface-Isolation im netsh-Parser ·
+  conn_factory-Doppelfehler entkommt _safe nicht (caplog: job+heartbeat warning) ·
+  Heartbeat-Fensterfilter (25-h-alter Stempel zählt nicht).
+- **Stand:** 80 Tests grün, Gate GESAMT: PASS. Security/Correctness-Lens laufen
+  nach (Session-Limit im ersten Anlauf), Findings folgen.

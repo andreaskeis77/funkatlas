@@ -69,6 +69,24 @@ def test_safe_always_heartbeats_even_on_failure(sup, tmp_db):
     assert [r["component"] for r in hb] == ["broken"]
 
 
+def test_conn_factory_failure_never_escapes(sup, tmp_db, caplog):
+    """DB unavailable (locked/disk full): job AND finally-heartbeat both fail —
+    _safe must swallow the double failure, or APScheduler sees the exception
+    and the morning gap gets misdiagnosed as an energy problem."""
+    import logging
+    import sqlite3
+
+    def broken_factory():
+        raise sqlite3.OperationalError("database is locked")
+
+    sup._conn_factory = broken_factory
+    with caplog.at_level(logging.WARNING, logger="funkatlas.supervisor"):
+        sup._safe("probe", sup.job_probe)  # must not raise
+    messages = " ".join(r.getMessage() for r in caplog.records)
+    assert "job probe failed" in messages
+    assert "heartbeat probe failed" in messages
+
+
 def test_bounded_run_terminates_and_measures(sup, tmp_db):
     start = time.monotonic()
     sup.run(max_runtime_s=2.5)
