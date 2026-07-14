@@ -1,0 +1,3 @@
+# Supervisor cadence (seconds). Light by default — the probe must not
+# influence the work laptop or the measurement itself.
+probe_interval_s: 60

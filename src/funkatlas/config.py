@@ -54,3 +54,12 @@ DEFAULT_PROBES: dict = {
 
 def probes() -> dict:
     return load_merged("probes.yaml", DEFAULT_PROBES)
+
+
+# Light cadence by default: the probe runs on a work laptop and must not
+# influence work or measurement (Grobkonzept risk list).
+DEFAULT_SCHEDULER: dict = {"probe_interval_s": 60}
+
+
+def scheduler() -> dict:
+    return load_merged("scheduler.yaml", DEFAULT_SCHEDULER)

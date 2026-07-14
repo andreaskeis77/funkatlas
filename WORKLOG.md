@@ -90,3 +90,22 @@
   Staged-Blobs (Gate+CI sind Backstop; Materialisierung via `git show :` = spätere
   Härtung) · CI-Dependency-Pinning (Lockfile) → Backlog.
 - **Stand:** 66 Tests grün, Gate GESAMT: PASS.
+
+## 2026-07-14 · Lauf 2 (M1) · T1.3 „Supervisor + Nachtlauf-Tauglichkeit"
+
+- **Gebaut:** `supervisor.py` (Harvest: `_safe` nie-raisen + Heartbeat-im-finally
+  mit device_id, APScheduler-3.x-Rezept max_workers=1/coalesce/max_instances=1/
+  misfire_grace_time=30 für Laptop-Sleep/Wake, injizierbare conn_factory/cfg/runner) ·
+  `status.py` (Heartbeat-Lücken-Report + letzte Messrunde, ASCII-safe für OEM-Konsole) ·
+  CLI `python -m funkatlas probe [--once|--max-runtime]` + `heartbeat` · task_runner-
+  Kommandos probe/probe-once/heartbeat · `config/scheduler.yaml` (60 s, leichte Taktung) ·
+  `ops/autostart_install.ps1` (Scheduled Task, RestartCount 3, -Remove) ·
+  `docs/RUNBOOK.md` v1 inkl. **E9-Energieprofil-Checkliste** (7 Punkte zum Abhaken).
+- **Tests:** job_probe schreibt Daten+Heartbeat · _safe heartbeatet auch bei Fehler ·
+  **bounded run(max_runtime=2.5) terminiert und misst** (schließt die Legacy-Lücke:
+  run() war dort ungetestet) · Heartbeat-Gap-Mathematik (7140-s-Lücke erkannt) ·
+  Report-Inhalte. 73 passed, Gate GESAMT: PASS.
+- **Live-Smoke (bewusst, außerhalb des Gates):** `probe-once` auf LaptopAndi →
+  {wifi_status: 1, ping: 2, dns: 1} unter device_id `laptopandi` (lokale .env);
+  Smoke-Daten vor Produktivstart zurückgesetzt. Keine Router-Calls.
+- **Parks:** keine.

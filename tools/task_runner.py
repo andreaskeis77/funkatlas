@@ -25,6 +25,12 @@ COMMANDS: dict[str, tuple[str, list[str]]] = {
                          [PY, "-m", "pytest", "-m", "integration", "-q"]),
     "test-consistency": ("consistency tests only",
                          [PY, "-m", "pytest", "-m", "consistency", "-q"]),
+    "probe": ("run the measurement supervisor (Ctrl+C to stop)",
+              [PY, "-m", "funkatlas", "probe"]),
+    "probe-once": ("one measurement round, then exit",
+                   [PY, "-m", "funkatlas", "probe", "--once"]),
+    "heartbeat": ("show heartbeat gaps of the last 24h (night-run check)",
+                  [PY, "-m", "funkatlas", "heartbeat"]),
     "version": ("print version", [PY, "-m", "funkatlas", "version"]),
 }
 

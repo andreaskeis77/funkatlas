@@ -15,6 +15,11 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("version", help="print version")
     sub.add_parser("gate", help="run the quality gate")
+    probe = sub.add_parser("probe", help="run the measurement supervisor")
+    probe.add_argument("--max-runtime", type=float, default=None)
+    probe.add_argument("--once", action="store_true")
+    heartbeat = sub.add_parser("heartbeat", help="show heartbeat gaps (night-run check)")
+    heartbeat.add_argument("--hours", type=int, default=24)
     args = parser.parse_args(argv)
 
     if args.command == "version":
@@ -26,6 +31,26 @@ def main(argv: list[str] | None = None) -> int:
         from funkatlas.gate import main as gate_main
 
         return gate_main()
+    if args.command == "probe":
+        from funkatlas.supervisor import main as probe_main
+
+        forwarded = []
+        if args.max_runtime is not None:
+            forwarded += ["--max-runtime", str(args.max_runtime)]
+        if args.once:
+            forwarded.append("--once")
+        return probe_main(forwarded)
+    if args.command == "heartbeat":
+        from funkatlas import schema
+        from funkatlas.status import heartbeat_report
+
+        conn = schema.connect()
+        try:
+            schema.ensure_schema(conn)
+            print(heartbeat_report(conn, hours=args.hours))
+        finally:
+            conn.close()
+        return 0
     return 2
 
 
