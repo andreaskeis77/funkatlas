@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 
 PY = sys.executable
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 COMMANDS: dict[str, tuple[str, list[str]]] = {
     "gate": ("run the quality gate (compile, ruff-critical, pytest, secret-scan)",
@@ -39,7 +41,9 @@ def main(argv: list[str]) -> int:
         print(usage())
         return 2
     _, base = COMMANDS[argv[0]]
-    return subprocess.call([*base, *argv[1:]])
+    # cwd pinned: the wrapper is callable from anywhere, pytest must resolve
+    # THIS project's rootdir.
+    return subprocess.call([*base, *argv[1:]], cwd=REPO_ROOT)
 
 
 if __name__ == "__main__":

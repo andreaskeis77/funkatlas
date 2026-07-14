@@ -49,3 +49,20 @@ def test_event_partitions_by_own_event_ts(tmp_path):
 def test_event_without_event_ts_falls_back_to_ts_utc(tmp_path):
     path = logsink.write_event("demo_events", REC, log_dir=tmp_path)
     assert path.name == "2026-07-14.jsonl"
+
+
+def test_malformed_event_ts_rejected(tmp_path):
+    """event_ts is device-supplied and becomes a file name — validate like ts_utc."""
+    for bad in ("n/a", "07:00 Uhr", "01.07.26 22:00", "../../../x"):
+        with pytest.raises(ValueError):
+            logsink.write_event("demo_events", {**REC, "event_ts": bad}, log_dir=tmp_path)
+
+
+def test_path_traversal_in_device_id_or_domain_rejected(tmp_path):
+    for bad_device in ("..", "../evil", "a/b", "C:/x", "a\\b"):
+        with pytest.raises(ValueError):
+            logsink.write_metric("demo", {**REC, "device_id": bad_device}, log_dir=tmp_path)
+    with pytest.raises(ValueError):
+        logsink.write_metric("../evil", REC, log_dir=tmp_path)
+    with pytest.raises(ValueError):
+        logsink.write_event("../evil", REC, log_dir=tmp_path)

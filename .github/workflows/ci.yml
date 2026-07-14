@@ -1,6 +1,8 @@
 # CI == exactly the local gate (compile, ruff-critical, offline pytest,
 # secret-scan). Runs on Windows because that is the target platform.
 name: ci
+permissions:
+  contents: read
 on:
   push:
     branches: [main]

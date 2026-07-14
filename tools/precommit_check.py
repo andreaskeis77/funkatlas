@@ -20,16 +20,32 @@ from funkatlas.gate import BASELINE_FILE, RUFF_CRITICAL, new_secrets  # noqa: E4
 
 
 def _run(args: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(args, cwd=REPO_ROOT, capture_output=True, text=True)
+    return subprocess.run(
+        args, cwd=REPO_ROOT, capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
+    )
 
 
-def _staged_files() -> list[str]:
-    proc = _run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"])
-    return [line for line in proc.stdout.splitlines() if line.strip()]
+def _staged_files() -> list[str] | None:
+    """NUL-separated so non-ASCII names arrive unquoted; ACMR includes
+    renamed-and-modified files. None on git failure (treated as FAIL).
+
+    Known limitation (documented, not hidden): contents are scanned from the
+    WORKING TREE, not the staged blobs — the offline gate and CI re-scan
+    everything and remain the backstop.
+    """
+    proc = _run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"])
+    if proc.returncode != 0:
+        print(proc.stderr or "git diff --cached failed")
+        return None
+    return [f for f in proc.stdout.split("\0") if f.strip()]
 
 
 def main() -> int:
-    staged = [f for f in _staged_files() if f != BASELINE_FILE]
+    listed = _staged_files()
+    if listed is None:
+        return 1  # git failure is a FAIL, not "nothing staged"
+    staged = [f for f in listed if f != BASELINE_FILE]
     if not staged:
         return 0
 

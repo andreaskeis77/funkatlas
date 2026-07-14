@@ -21,12 +21,15 @@ def test_empty_env_value_treated_as_unset(monkeypatch):
     settings_mod.reload_settings()
 
 
-def test_device_id_default_is_sanitized_and_nonempty(monkeypatch):
+def test_device_id_default_is_a_hostname_digest_not_pii(monkeypatch):
+    """Hostnames often embed a person's name — the default must be non-reversible."""
+    import re
+    import socket
+
     monkeypatch.delenv("FUNKATLAS_DEVICE_ID", raising=False)
     s = settings_mod.reload_settings()
-    assert s.device_id
-    assert s.device_id == s.device_id.lower()
-    assert all(c.isalnum() or c == "-" for c in s.device_id)
+    assert re.fullmatch(r"dev-[0-9a-f]{8}", s.device_id)
+    assert socket.gethostname().lower() not in s.device_id
     settings_mod.reload_settings()
 
 

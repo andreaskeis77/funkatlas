@@ -28,14 +28,27 @@ BASELINE_FILE = ".secrets.baseline"
 
 
 def _run(args: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(args, cwd=REPO_ROOT, capture_output=True, text=True)
+    # ruff/detect-secrets emit UTF-8 regardless of the Windows ANSI codepage —
+    # decoding must never crash the gate.
+    return subprocess.run(
+        args, cwd=REPO_ROOT, capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
+    )
 
 
-def _git_files() -> list[str]:
+def _git_files() -> list[str] | None:
     """Files git would consider (tracked + untracked, respecting .gitignore) —
-    so secrets in not-yet-committed files are caught before they enter history."""
-    proc = _run(["git", "ls-files", "--cached", "--others", "--exclude-standard"])
-    return [line for line in proc.stdout.splitlines() if line.strip()]
+    so secrets in not-yet-committed files are caught before they enter history.
+
+    NUL-separated (-z) so non-ASCII names arrive unquoted. Returns ``None`` on
+    git failure — callers must treat that as FAIL, never as "nothing to scan"
+    (fail-safe, not fail-open).
+    """
+    proc = _run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"])
+    if proc.returncode != 0:
+        print(proc.stderr or "git ls-files failed")
+        return None
+    return [f for f in proc.stdout.split("\0") if f.strip()]
 
 
 def step_compile() -> bool:
@@ -86,7 +99,10 @@ def new_secrets(scan_results: dict, baseline_results: dict) -> dict:
 
 
 def step_secret_scan() -> bool:
-    files = [f for f in _git_files() if f != BASELINE_FILE]
+    listed = _git_files()
+    if listed is None:
+        return False  # git failure is a FAIL, not an empty scan
+    files = [f for f in listed if f != BASELINE_FILE]
     if not files:
         return True
     proc = _run([sys.executable, "-m", "detect_secrets", "scan", *files])

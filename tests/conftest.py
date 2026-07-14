@@ -31,6 +31,9 @@ def tmp_db(tmp_path, monkeypatch):
     schema.ensure_schema(conn)
     yield conn
     conn.close()
+    # undo the env patches BEFORE rebuilding the singleton — otherwise the
+    # reload re-reads the tmp values and later tests see a stale deleted path
+    monkeypatch.undo()
     settings_mod.reload_settings()
 
 

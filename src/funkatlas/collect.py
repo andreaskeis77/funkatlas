@@ -13,6 +13,7 @@ order for insert + log identity).
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -22,8 +23,22 @@ from funkatlas import logsink
 _COLUMNS: dict[str, tuple[str, ...]] = {}
 
 
+_IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_RESERVED = ("ts_utc", "device_id")
+
+
 def register_domain(table: str, columns: tuple[str, ...]) -> None:
-    """Additive registration; re-registering with a different shape is a bug."""
+    """Additive registration; re-registering with a different shape is a bug.
+
+    Identifiers are validated here because they are later interpolated into
+    SQL — this is the explicit trust boundary (registry membership alone would
+    let a config-derived name through).
+    """
+    for name in (table, *columns):
+        if not _IDENT_RE.fullmatch(name):
+            raise ValueError(f"invalid SQL identifier: {name!r}")
+    if any(c in _RESERVED for c in columns):
+        raise ValueError(f"columns must not shadow reserved keys {_RESERVED}")
     known = _COLUMNS.get(table)
     if known is not None and known != columns:
         raise ValueError(f"domain {table} already registered with different columns")
@@ -44,6 +59,11 @@ def insert_stg(
     conn: sqlite3.Connection, table: str, ts: str, device_id: str, parsed: dict
 ) -> None:
     cols = _COLUMNS[table]
+    # Unknown/reserved keys would make DB row and JSONL record diverge silently
+    # (logs == DB is the core invariant) — reject instead of dropping.
+    unexpected = set(parsed) - set(cols)
+    if unexpected:
+        raise ValueError(f"unregistered/reserved keys for {table}: {sorted(unexpected)}")
     names = ("ts_utc", "device_id", *cols)
     placeholders = ", ".join("?" for _ in names)
     values = (ts, device_id, *(parsed.get(c) for c in cols))

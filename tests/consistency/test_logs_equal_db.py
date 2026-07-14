@@ -52,6 +52,33 @@ def test_reregistering_domain_with_different_shape_is_an_error(demo_domain):
         collect.register_domain(TABLE, ("other",))
 
 
+def test_unregistered_keys_rejected_not_silently_dropped(demo_domain, tmp_path):
+    """Extra keys would appear in the JSONL but not the DB row — logs != DB."""
+    with pytest.raises(ValueError):
+        collect.twin_write(
+            demo_domain, "demo", TABLE, "2026-07-14T01:02:06Z", "testdevice",
+            {"alpha": 1, "surprise": 2}, tmp_path,
+        )
+
+
+def test_reserved_keys_in_parsed_rejected(demo_domain, tmp_path):
+    """parsed['ts_utc'] would override the round identity only in the log line."""
+    with pytest.raises(ValueError):
+        collect.twin_write(
+            demo_domain, "demo", TABLE, "2026-07-14T01:02:07Z", "testdevice",
+            {"alpha": 1, "ts_utc": "2020-01-01T00:00:00Z"}, tmp_path,
+        )
+
+
+def test_register_domain_validates_sql_identifiers():
+    with pytest.raises(ValueError):
+        collect.register_domain("stg_x; DROP TABLE raw_probe;--", ("a",))
+    with pytest.raises(ValueError):
+        collect.register_domain("stg_ok", ("bad-col",))
+    with pytest.raises(ValueError):
+        collect.register_domain("stg_ok", ("ts_utc",))  # reserved
+
+
 def test_raw_insurance_roundtrip(demo_domain):
     conn = demo_domain
     payload = {"outer": {"inner": [1, 2]}, "note": "äöü"}

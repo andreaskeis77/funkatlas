@@ -12,8 +12,8 @@ Secret fields (none yet; TR-064 credentials arrive with M5) MUST use
 
 from __future__ import annotations
 
+import hashlib
 import os
-import re
 import socket
 from dataclasses import dataclass, replace
 
@@ -40,10 +40,11 @@ def _maybe_load_dotenv() -> None:
 
 
 def _default_device_id() -> str:
-    """Pseudonym-free probe identity derived from the hostname (env-overridable)."""
+    """Non-reversible default identity: hostnames often embed a person's name
+    (PII), so the default is a hostname digest. Humans who consciously choose a
+    name set FUNKATLAS_DEVICE_ID (lowercase slug, [a-z0-9_-])."""
     host = socket.gethostname().lower()
-    slug = re.sub(r"[^a-z0-9-]+", "-", host).strip("-")
-    return slug or "unknown-device"
+    return "dev-" + hashlib.sha256(host.encode("utf-8")).hexdigest()[:8]
 
 
 @dataclass(frozen=True)

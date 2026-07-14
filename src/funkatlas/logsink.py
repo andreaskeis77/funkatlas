@@ -24,12 +24,21 @@ from pathlib import Path
 from funkatlas import settings as _settings_mod
 
 _TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+# Path components are attacker-influenced once the M2 ingest API exists —
+# a strict slug prevents traversal/absolute-path escape out of log_dir.
+_SLUG_RE = re.compile(r"[a-z0-9][a-z0-9_-]*")
 
 
 def _require(record: dict, key: str) -> str:
     value = record.get(key)
     if not value or not isinstance(value, str):
         raise ValueError(f"record must carry a non-empty '{key}'")
+    return value
+
+
+def _slug(value: str, what: str) -> str:
+    if not _SLUG_RE.fullmatch(value):
+        raise ValueError(f"{what} must be a slug ([a-z0-9_-], no separators), got: {value!r}")
     return value
 
 
@@ -53,8 +62,8 @@ def append_jsonl(path: Path, record: dict) -> None:
 
 def metric_path(domain: str, record: dict, log_dir: str | Path | None = None) -> Path:
     day = _day_from_ts(_require(record, "ts_utc"))
-    device = _require(record, "device_id")
-    return _resolve_log_dir(log_dir) / "metrics" / device / domain / f"{day}.jsonl"
+    device = _slug(_require(record, "device_id"), "device_id")
+    return _resolve_log_dir(log_dir) / "metrics" / device / _slug(domain, "domain") / f"{day}.jsonl"
 
 
 def write_metric(domain: str, record: dict, log_dir: str | Path | None = None) -> Path:
@@ -65,9 +74,12 @@ def write_metric(domain: str, record: dict, log_dir: str | Path | None = None) -
 
 def event_path(kind: str, record: dict, log_dir: str | Path | None = None) -> Path:
     _day_from_ts(_require(record, "ts_utc"))  # ts_utc stays mandatory
-    device = _require(record, "device_id")
-    day = (record.get("event_ts") or record["ts_utc"])[:10]
-    return _resolve_log_dir(log_dir) / "events" / device / kind / f"{day}.jsonl"
+    device = _slug(_require(record, "device_id"), "device_id")
+    # event_ts is device-supplied — validate it as strictly as ts_utc before
+    # it becomes a file name.
+    event_ts = record.get("event_ts")
+    day = _day_from_ts(event_ts) if event_ts else record["ts_utc"][:10]
+    return _resolve_log_dir(log_dir) / "events" / device / _slug(kind, "kind") / f"{day}.jsonl"
 
 
 def write_event(kind: str, record: dict, log_dir: str | Path | None = None) -> Path:

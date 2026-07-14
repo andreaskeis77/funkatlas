@@ -66,3 +66,27 @@
   Partial-Loss, mehr Matches als count) · DNS ok/fail hermetisch · volle Runde
   (ein ts über alle Domains, JSONL je Domain, logs==DB für ping). 47 passed.
 - **Parks:** keine.
+
+## 2026-07-14 · Review-Panel M0 (3 Lenses, 20 Findings) → Fixes
+
+- **Major gefixt (je mit Regressionstest):** Gate-Secret-Scan war fail-open bei
+  Git-Fehler (leere Liste → PASS) → `_git_files` prüft returncode, None → FAIL ·
+  Nicht-ASCII-Dateinamen entkamen dem Scan (Octal-Quoting) → `-z`/NUL-Splitting in
+  Gate UND Pre-Commit · `twin_write` konnte logs==DB still brechen (unregistrierte/
+  reservierte Keys nur im JSONL) → `insert_stg` rejektiert · `event_ts` floss
+  unvalidiert in Dateinamen → `_day_from_ts`-Validierung · Pfad-Traversal über
+  `device_id`/`domain`/`kind` → Slug-Validierung in logsink · Default-`device_id`
+  war Hostname (oft PII!) → `dev-`+sha256[:8]-Digest · SQL-Identifier-Grenze in
+  `register_domain` erzwungen (Injection-Guard).
+- **Minor gefixt:** `_run` mit encoding=utf-8/replace (Gate+Hook stürzen nie an
+  cp1252) · task_runner pinnt cwd=REPO_ROOT + Exit-Code-Passthrough-Test ·
+  tmp_db-Teardown: monkeypatch.undo() VOR reload_settings (Stale-Singleton-Falle) ·
+  CI permissions: contents:read · Pre-Commit ACMR statt ACM.
+- **Neue Test-Abdeckung (Panel-Lens 3):** gate.main-Aggregation (später PASS darf
+  FAIL nicht überschreiben) · step_secret_scan-Verdrahtung (BOM-Baseline, Baseline-
+  Ausschluss, git-Fehler→FAIL) · precommit_check komplett (frisches Secret→1,
+  ruff nur auf .py, git-Fehler→1).
+- **Bewusst NICHT gefixt (dokumentiert):** Pre-Commit scannt Working-Tree statt
+  Staged-Blobs (Gate+CI sind Backstop; Materialisierung via `git show :` = spätere
+  Härtung) · CI-Dependency-Pinning (Lockfile) → Backlog.
+- **Stand:** 66 Tests grün, Gate GESAMT: PASS.
