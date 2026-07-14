@@ -1,6 +1,6 @@
 # Execution Plan — M0 (Projektfundament + Harvest) + M1 (Probe v0)
 
-**Stand: 2026-07-14 · Plan v1 · Status: ZUR FREIGABE (Go/No-Go durch Andreas)**
+**Stand: 2026-07-14 · Plan v2 · Status: FREIGEGEBEN (Go durch Andreas, 2026-07-14, mit Auflagen — §15)**
 
 > Erstellt nach `docs/EXECUTION_PLANNING_AND_GUARDRAILS.md` §2 im read-only Plan-Pass.
 > Recon-Basis: Legacy-Repo `github.com/andreaskeis77/wlan` (Shallow-Clone, read-only gesichtet;
@@ -72,16 +72,13 @@ jungen Gerüst erzeugen nur Merge-Kosten ohne Zeitgewinn.
 
 **Maschinelle DoD T0.1:** `funkatlas.cmd gate` → `GESAMT: PASS` · Schema-Tests grün (alle Tabellen, Migration idempotent + einmal recorded, Zulu-Sortierbarkeit — Muster `wlan:tests/consistency/test_schema.py`) · `test_gate_secrets`-Semantik grün · CI grün auf Push.
 
-**T0.2 „Harvest FRITZ-Bausteine"** — der eigentliche E2-Harvest, mit `device_id` ab Tag 1 (§D1).
-- `fritz.py`: `Caller`-Protocol + `safe_call`/`is_error` (Fehler-als-Daten; 401 = Normalfall, `wlan:src/wlan/fritz.py:8, 19-84`) + `BoxClient`; **Adaption: explizite Per-Device-Konfiguration statt Settings-Singleton, TLS-Option (Port 49443, B8)**.
-- `_util.py` komplett: `tenth_db`, `RSNI_NA=255→None`, `client_id` = `c_`+sha256(MAC)[:10] (`wlan:src/wlan/adapters/_util.py:14-59`).
-- Adapter dsl/wan/wlan/box/mesh/eventlog (`wlan:src/wlan/adapters/*.py`) + `snapshot.py` (Redact/Flatten/Diff, `wlan:src/wlan/snapshot.py:19-113`; kuratierte Liste per Device-Typ parametrisiert).
-- **Beim Harvest gefixt (test-first, §D5):** Eventlog-Zeitzone (Lokalzeit-als-Z-Bug, `wlan:src/wlan/adapters/eventlog.py:52`) · tote Byte-Raten-Placeholder-Spalten NICHT übernehmen (`wlan:src/wlan/adapters/wan.py:36-40`; Delta-Berechnung sauber in M5, additiv).
-- `logsink.py` mit Device-Dimension: `logs/metrics/<device_id>/<domain>/<day>.jsonl`, `device_id` im Record (`wlan:src/wlan/logsink.py:21-60` + Risiko-Analyse Recon).
-- `collect.py`-Muster: eine Runde = ein `ts_utc`, raw-Versicherung → stg → JSONL-Spiegel, Event-Idempotenz via `UNIQUE(event_key)` (`wlan:src/wlan/collect.py:22-188`); `device`-Hardcoding `'box'` ersetzt durch durchgereichte Identität (`wlan:src/wlan/collect.py:65` ff.).
-- Fixtures übernehmen: `box_discovery/box_wan/repeater_discovery/speedtest.sanitized.json` + `FixtureCaller` (`wlan:tests/conftest.py:42-84`) + alle Unit-/Integrations-/Konsistenz-Tests als Regressionsanker.
+**T0.2 „Harvest Kern-Bausteine (D2-minimal)"** — mit `device_id` ab Tag 1 (§D1).
+*Go-Auflage: Der TR-064-Adapter-Harvest (fritz.py, _util.py, Adapter dsl/wan/wlan/box/mesh/eventlog, snapshot.py, FixtureCaller + TR-064-Fixtures) wandert komplett nach **M5**; der Eventlog-tz-Fix (D5) damit ebenfalls.*
+- `logsink.py` mit Device-Dimension: `logs/metrics/<device_id>/<domain>/<day>.jsonl`, `device_id` im Record (`wlan:src/wlan/logsink.py:21-60` + Risiko-Analyse Recon); append-only, kompakte sortierte JSON-Zeilen, `ts_utc`-Pflicht.
+- Collect-Runden-Kern (generisch, ohne TR-064): eine Runde = ein `ts_utc` + `device_id`, `_COLUMNS`-Registry als Single-Source der Feldnamen, `_insert_stg` + Zwillings-Schreibung DB↔JSONL aus demselben Dict, raw-Versicherung `raw_probe` (`wlan:src/wlan/collect.py:22-57, 173`).
+- `logs == DB`-Konsistenztest-Maschinerie: Registry-iterierender Feldvergleich (Muster `wlan:tests/consistency/test_logs_equal_db.py:20-22`), geprüft an einer synthetischen Probe-Domain (echte Domains folgen in T1.1/T1.2).
 
-**Maschinelle DoD T0.2:** alle geernteten Adapter-Contract-Tests grün gegen Fixtures (Goldwerte `wlan:tests/integration/test_adapters_p2.py`) · `logs == DB`-Test grün **mit device-Dimension** (Muster `wlan:tests/consistency/test_logs_equal_db.py:20-22`) · Eventlog-tz-Regressionstest grün · Gate PASS.
+**Maschinelle DoD T0.2:** `logs == DB`-Test grün **mit device-Dimension** · logsink-Unit-Tests grün (Tages-Partition, `ts_utc`-Pflicht, Event-Partition nach eigenem Zeitstempel) · Gate PASS.
 
 ### M1 — Probe v0 (3 Tranchen)
 
@@ -160,6 +157,10 @@ logsink-report, supervisor-scheduler, taskrunner-gate-ci, fixtures-probes-analyz
 zurückgestellt" dokumentiert in `wlan:docs/HANDBACK.md:36`, nicht in der ROADMAP — die
 mart-Schicht hat **null Code**, es gibt dort nichts zu ernten).
 
+*Go-Anpassung (v2): Die TR-064-Zeilen (Caller/safe_call, Einheiten-Kit, Adapter, Snapshot,
+FixtureCaller/TR-064-Fixtures) werden erst in **M5** geerntet — die Tabelle bleibt als
+verifizierte Harvest-Referenz dafür stehen.*
+
 | Baustein | Kern-Belege (Legacy) | Übernahme |
 |---|---|---|
 | TR-064-Grenze: `Caller`-Protocol, `safe_call` (Fehler-als-Daten), `BoxClient` | `fritz.py:19-84`; 401=Normalfall `fritz.py:8` | as-is + Per-Device-Config, TLS-Option |
@@ -191,10 +192,10 @@ Speedtest-Probe (Fixture existiert; → M4 mit Budget-Wächter) · marts (→ M3
 ## 13. Entscheidungen im Plan (bitte im Go bestätigen oder kippen)
 
 - **D1 · device_id ab Tag 1** in Schema, JSONL-Records und `logs/`-Pfaden (`logs/metrics/<device_id>/<domain>/<day>.jsonl`). Grund: Layout + Feldnamen werden in M2 Frozen Zone — die Dimension **jetzt** einziehen ist additiv, später ist es ein Breaking Change. Korrelation über `(device_id, ts_utc)`; ein `run_id` erst bei realem Bedarf (YAGNI).
-- **D2 · Voll-Harvest in M0** (alle sechs Adapter + Snapshot), obwohl die Probe sie erst ab M5 live nutzt. Grund: Tests existieren als Sicherheitsnetz, GOTCHAs wandern in einem kohärenten Port mit. *Billigere Alternative:* Minimal-Harvest (nur schema/logsink/gate/supervisor/ping, ≈ 40 % weniger M0-Umfang), Adapter erst in M5 — Preis: doppeltes Einarbeiten, Drift-Risiko. **Empfehlung: Voll-Harvest.**
-- **D3 · Gate v0 ohne Live-Smoke-Schritt** — es gibt bis M2 keinen Server. Der Smoke kommt in M2 zurück (Ingest-API gegen tmp-DB booten + eine synthetische Messung durchschieben).
-- **D4 · Dependency-Set M0/M1 (Hard-Stop „neue Dependency" — hiermit zur Freigabe):** Runtime `pyyaml`, `python-dotenv`, `APScheduler>=3.10,<4` (Pin ist ladungstragend), `fritzconnection>=1.14` (lazy importiert; Fixture-Tests brauchen es nicht). Dev: `pytest`, `ruff`, `detect-secrets`. **Nicht** in M0/M1: fastapi/uvicorn/httpx (M2), pystray/pillow (Tray unnötig für Probe-Knoten), pyinstaller (später).
-- **D5 · Legacy-Bugs beim Harvest test-first fixen:** Eventlog-Zeitzone · Byte-Raten-Stubs entfernen · Config-Merge vereinheitlichen · Baseline-Pfad-Normalisierung · `probes.yaml`-Target-Drift. Alles klein, alles mit Regressionstest.
+- **D2 · ENTSCHIEDEN (Go): Minimal-Harvest.** M0 erntet nur schema/logsink/gate (+ supervisor/ping in den M1-Tranchen); der TR-064-Adapter-Harvest (fritz.py, _util.py, sechs Adapter, snapshot.py, FixtureCaller, TR-064-Fixtures) erfolgt erst in **M5**, wie im Plan als Alternative spezifiziert.
+- **D3 · Gate v0 ohne Live-Smoke-Schritt** — es gibt bis M2 keinen Server. Der Smoke kommt in M2 zurück (Ingest-API gegen tmp-DB booten + eine synthetische Messung durchschieben). *(Go: bestätigt.)*
+- **D4 · ENTSCHIEDEN (Go): Dependency-Set OHNE fritzconnection.** Runtime `pyyaml`, `python-dotenv`, `APScheduler>=3.10,<4` (Pin ist ladungstragend). Dev: `pytest`, `ruff`, `detect-secrets`. `fritzconnection` wird **mit M5 neu beantragt**. **Nicht** in M0/M1: fastapi/uvicorn/httpx (M2), pystray/pillow, pyinstaller.
+- **D5 · Legacy-Bugs test-first fixen — anteilig beim jeweiligen Harvest (Go):** jetzt: Config-Merge vereinheitlichen · Baseline-Pfad-Normalisierung · `probes.yaml`-Target-Drift (T1.2). Erst M5 (mit dem Adapter-Harvest): Eventlog-Zeitzone · Byte-Raten-Stubs. Alles mit Regressionstest.
 - **D6 · wifi-status via `netsh`-Parsing** (nicht Win32-WLAN-API): einfacher, fixture-testbar, DE/EN-robust machbar; Format-Drift-Risiko dokumentiert. Native API bleibt Option, falls `netsh` sich als zu wackelig erweist (dann Park + Entscheidung).
 
 ## 14. Challenge (aktiv, wie angefordert)
@@ -209,7 +210,8 @@ Speedtest-Probe (Fixture existiert; → M4 mit Budget-Wächter) · marts (→ M3
 
 ## 15. Freigabe
 
-**Go:** ☐ Andreas · Datum: ____ · Plan v1 · Kosten-Rahmen §9 akzeptiert · D1–D6 bestätigt/angepasst: ____
+**Go: ☑ Andreas · 2026-07-14 · auf Plan v1, eingearbeitet als v2 · Kosten-Rahmen §9 akzeptiert.**
+Auflagen: **D2 minimal** (TR-064-Adapter-Harvest erst M5) · **D4 ohne fritzconnection** (Antrag mit M5) · **D5 anteilig** beim jeweiligen Harvest (Eventlog-tz-Fix damit M5) · D1/D3/D6 wie empfohlen · **vor dem ersten Nachtlauf:** Energieprofil-Checkliste (E9) als Runbook-Schritt zum Abhaken vorlegen.
 
 Bei substanzieller Plan-Änderung im Lauf: parken + Re-Approval (kein stilles Abweichen).
 
@@ -217,4 +219,5 @@ Bei substanzieller Plan-Änderung im Lauf: parken + Re-Approval (kein stilles Ab
 
 ## Änderungslog
 
+- **v2 (2026-07-14):** Go eingearbeitet: T0.2 auf Minimal-Harvest umgeschnitten, D2/D4/D5 als entschieden markiert, E9-Checklisten-Auflage ergänzt. TR-064-Inventar (§12) bleibt als M5-Referenz stehen.
 - **v1 (2026-07-14):** Erstfassung nach Recon (7 Bereiche, adversarial verifiziert) — zur Freigabe.
