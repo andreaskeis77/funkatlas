@@ -39,3 +39,13 @@ def test_device_id_env_override(monkeypatch):
     assert s.device_id == "laptopandi"
     monkeypatch.delenv("FUNKATLAS_DEVICE_ID")
     settings_mod.reload_settings()
+
+
+def test_invalid_device_id_rejected_at_startup(monkeypatch):
+    """'LaptopAndi' would pass here but fail in logsink at write time —
+    committed DB rows without JSONL lines, permanent silent logs != DB."""
+    monkeypatch.setenv("FUNKATLAS_DEVICE_ID", "LaptopAndi")
+    with pytest.raises(ValueError):
+        settings_mod.reload_settings()
+    monkeypatch.delenv("FUNKATLAS_DEVICE_ID")
+    settings_mod.reload_settings()

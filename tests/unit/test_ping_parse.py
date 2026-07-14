@@ -65,7 +65,43 @@ def test_more_matches_than_count_never_negative_loss():
     assert result["loss_pct"] == 0.0
 
 
-def test_ping_cmd_windows_flags():
+def test_ping_cmd_uses_absolute_system_path_on_windows():
+    """Bare 'ping' would search the user-writable cwd first (binary planting)."""
+    import platform
+
     cmd = ping._ping_cmd("1.1.1.1", 4, 2000)
-    assert cmd[0] == "ping"
     assert "1.1.1.1" in cmd
+    if platform.system() == "Windows":
+        assert cmd[0].lower().endswith("system32\\ping.exe")
+
+
+def test_ping_cmd_rejects_flag_shaped_hosts():
+    with pytest.raises(ValueError):
+        ping._ping_cmd("-n 100000 evil", 4, 2000)
+
+
+def test_default_runner_enforces_timeout(monkeypatch):
+    """A stalled ping.exe must never block the single supervisor worker."""
+    captured = {}
+
+    def fake_run(args, capture_output=None, timeout=None):
+        captured["timeout"] = timeout
+
+        class P:
+            stdout = b""
+            stderr = b""
+
+        return P()
+
+    monkeypatch.setattr(ping.subprocess, "run", fake_run)
+    ping._default_runner(["x"])
+    assert captured["timeout"] == ping.SUBPROCESS_TIMEOUT_S
+
+
+def test_config_clamps_count_and_timeout():
+    count, timeout_ms = ping._clamped({"count": 100000, "timeout_ms": 999999})
+    assert count == ping.MAX_COUNT
+    assert timeout_ms == ping.MAX_TIMEOUT_MS
+    count, timeout_ms = ping._clamped({"count": 0, "timeout_ms": 1})
+    assert count == 1
+    assert timeout_ms == ping.MIN_TIMEOUT_MS

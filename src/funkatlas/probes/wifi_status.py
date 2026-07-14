@@ -18,6 +18,7 @@ repo fixtures are pseudonymized.
 
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
 import subprocess
@@ -47,9 +48,20 @@ Runner = Callable[[list[str]], bytes]
 
 _LINE_RE = re.compile(r"^\s{4}(\S[^:]*?)\s*:\s?(.*)$")
 
+# A wedged WLAN AutoConfig service can hang netsh (typically after
+# sleep/resume — exactly the night-run scenario); the cap keeps the
+# supervisor's single worker and its heartbeats alive.
+SUBPROCESS_TIMEOUT_S = 30
+
 
 def _default_runner(args: list[str]) -> bytes:
-    proc = subprocess.run(args, capture_output=True)  # bytes on purpose, no text=True
+    # Absolute System32 path: a bare name would search the (user-writable)
+    # cwd first — binary-planting vector for the autostart task.
+    root = os.environ.get("SystemRoot", r"C:\Windows")
+    resolved = [os.path.join(root, "System32", args[0] + ".exe"), *args[1:]]
+    proc = subprocess.run(  # bytes on purpose, no text=True
+        resolved, capture_output=True, timeout=SUBPROCESS_TIMEOUT_S
+    )
     return proc.stdout + proc.stderr
 
 

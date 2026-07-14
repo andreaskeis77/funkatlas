@@ -63,6 +63,27 @@ def test_garbage_output_yields_no_interfaces():
     assert wifi_status.parse(b"\xff\xfe garbage \x00") == []
 
 
+def test_default_runner_absolute_path_and_timeout(monkeypatch):
+    """netsh can hang after sleep/resume (wedged wlansvc) and bare names are a
+    binary-planting vector — the default runner must cap and resolve."""
+    captured = {}
+
+    def fake_run(args, capture_output=None, timeout=None):
+        captured["args"], captured["timeout"] = args, timeout
+
+        class P:
+            stdout = b""
+            stderr = b""
+
+        return P()
+
+    monkeypatch.setattr(wifi_status.subprocess, "run", fake_run)
+    wifi_status._default_runner(["netsh", "wlan", "show", "interfaces"])
+    assert captured["timeout"] == wifi_status.SUBPROCESS_TIMEOUT_S
+    assert captured["args"][0].lower().endswith("system32\\netsh.exe")
+    assert captured["args"][1:] == ["wlan", "show", "interfaces"]
+
+
 def test_two_interfaces_stay_isolated():
     """A second adapter (USB dongle, Wi-Fi Direct) must not bleed fields into
     or out of the first interface block."""

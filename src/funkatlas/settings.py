@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import socket
 from dataclasses import dataclass, replace
 
@@ -54,12 +55,29 @@ class Settings:
     device_id: str = "unknown-device"
 
 
+# Must match logsink's slug rule — identity is rejected once at the front
+# door instead of half-way through a twin write (committed DB row + failing
+# log write = permanent silent logs != DB divergence).
+_DEVICE_ID_RE = re.compile(r"[a-z0-9][a-z0-9_-]*")
+
+
+def _device_id() -> str:
+    value = _clean("FUNKATLAS_DEVICE_ID")
+    if value is None:
+        return _default_device_id()
+    if not _DEVICE_ID_RE.fullmatch(value):
+        raise ValueError(
+            f"FUNKATLAS_DEVICE_ID must be a lowercase slug ([a-z0-9_-]), got: {value!r}"
+        )
+    return value
+
+
 def _build() -> Settings:
     _maybe_load_dotenv()
     return Settings(
         db_path=_clean("FUNKATLAS_DB_PATH") or os.path.join("data", "funkatlas.sqlite3"),
         log_dir=_clean("FUNKATLAS_LOG_DIR") or "logs",
-        device_id=_clean("FUNKATLAS_DEVICE_ID") or _default_device_id(),
+        device_id=_device_id(),
     )
 
 

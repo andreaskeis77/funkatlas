@@ -125,3 +125,24 @@
   Heartbeat-Fensterfilter (25-h-alter Stempel zählt nicht).
 - **Stand:** 80 Tests grün, Gate GESAMT: PASS. Security/Correctness-Lens laufen
   nach (Session-Limit im ersten Anlauf), Findings folgen.
+
+## 2026-07-14 · Review-Panel M1, Teil 2 (correctness + security, 8 Findings) → Fixes
+
+- **Major gefixt:** Shallow-Merge brach bei partiellen VERSCHACHTELTEN YAML-Sektionen
+  (ping: nur targets → KeyError count in jedem Tick, Heartbeats sähen gesund aus) →
+  load_merged merged eine Ebene tief, Test pinnt · Task-Scheduler-Default
+  ExecutionTimeLimit=72h hätte Mehr-Nacht-Betrieb still gekillt (Limit-Stop ≠ Failure,
+  RestartCount greift nicht!) → PT0S · ping ohne subprocess-Timeout konnte den
+  Single-Worker (und damit alle Heartbeats) ewig blockieren → 90-s-Cap + Config-Clamps
+  (count≤20, timeout 100–10000 ms) + Flag-Injection-Guard für Hosts.
+- **Minor gefixt:** netsh-Timeout 30 s (wlansvc-Hänger nach Sleep/Resume = exakt das
+  Nachtlauf-Szenario) · ping/netsh mit absolutem System32-Pfad (Binary-Planting über
+  user-writable WorkingDirectory des Autostart-Tasks) · ping-raw-Versicherung speichert
+  jetzt die ROHEN Output-Bytes statt des geparsten Dicts (unbekannte Locale bleibt
+  nachträglich re-parsebar — genau der Versicherungszweck) · shutdown(wait=True)
+  (in-flight Job durfte run() nicht überleben: hätte nach Test-Teardown/Settings-Reload
+  in die falsche DB geschrieben = Zweit-Writer) · FUNKATLAS_DEVICE_ID wird beim Start
+  gegen die logsink-Slug-Regel validiert („LaptopAndi" hätte permanente stille
+  logs≠DB-Divergenz erzeugt: DB committet, JSONL-Write wirft).
+- **Live-Smoke wiederholt:** probe-once → errors {}, wifi 1 / ping 2 / dns 1.
+- **Stand:** 86 Tests grün, Gate GESAMT: PASS. M1 code-fertig.

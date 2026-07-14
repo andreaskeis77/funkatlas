@@ -28,9 +28,16 @@ verifiziert Optimierungen per Vorher/Nachher-Experiment. Nachfolger von
   Collect-Kern, logs==DB-Maschinerie) · Review-Panel (3 Lenses, 20 Findings)
   ausgewertet, alle Major/Minor gefixt oder bewusst dokumentiert. 66 Tests,
   Gate `GESAMT: PASS`, CI grün.
-- **M1 🔨 (Lauf 2):** T1.1 wifi-status ✅ (netsh-Parser DE/EN, Bytes-Disziplin,
-  Schema v2) · T1.2 ping/dns + Messrunde ✅ (Schema v3, ein ts je Runde) ·
-  T1.3 Supervisor/Nachtlauf: in Arbeit.
+- **M1 🔨 code-fertig (Lauf 2):** T1.1 wifi-status ✅ (netsh-Parser DE/EN,
+  Bytes-Disziplin, Schema v2) · T1.2 ping/dns + Messrunde ✅ (Schema v3, ein ts
+  je Runde) · T1.3 Supervisor/Nachtlauf ✅ (Heartbeat mit device_id,
+  bounded-run-Test, Autostart-Task ohne 72h-Limit, RUNBOOK mit E9-Checkliste) ·
+  Review-Panel M1 ✅ (3 Lenses, 13 Findings — alle gefixt, u. a. Runden-
+  Teilausfall-Konsistenz, subprocess-Timeouts, System32-Pfade, device_id-
+  Validierung). 86 Tests, Gate PASS, Live-Smoke `probe-once` grün
+  (device_id `laptopandi` via lokale .env).
+  **Offen für M1-Abschluss:** E9-Checkliste abhaken (Andreas) + eine Nacht
+  Messreihe (operative Abnahme laut ROADMAP).
 
 ## Bekannte Verstöße / GOTCHAs (Ist ≠ Ziel, ehrlich)
 

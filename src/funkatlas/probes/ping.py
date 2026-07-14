@@ -11,6 +11,7 @@ drift where ``probes.yaml`` existed but was ignored by the code.
 from __future__ import annotations
 
 import math
+import os
 import platform
 import re
 import sqlite3
@@ -30,16 +31,35 @@ Runner = Callable[[list[str]], bytes]
 # Matches per-reply time in English/German output, '<1ms', comma decimals.
 _TIME_RE = re.compile(rb"(?:time|zeit)\s*[=<]\s*(\d+(?:[.,]\d+)?)\s*ms", re.IGNORECASE)
 
+# Hard child-process cap: a stalled ping.exe must never block the supervisor's
+# single worker thread (which would also stop heartbeats). TimeoutExpired
+# propagates into the round's per-domain isolation.
+SUBPROCESS_TIMEOUT_S = 90
+
+# Sanity clamps for config-derived values (defense in depth).
+MAX_COUNT = 20
+MIN_TIMEOUT_MS, MAX_TIMEOUT_MS = 100, 10_000
+
+
+def _system32(exe: str) -> str:
+    """Absolute path: bare names would search the (user-writable) cwd first —
+    a binary-planting vector for the autostart task."""
+    root = os.environ.get("SystemRoot", r"C:\Windows")
+    return os.path.join(root, "System32", exe)
+
 
 def _ping_cmd(host: str, count: int, timeout_ms: int) -> list[str]:
+    host = str(host)
+    if host.startswith("-"):
+        raise ValueError(f"ping target must not start with '-': {host!r}")
     if platform.system() == "Windows":
-        return ["ping", "-n", str(count), "-w", str(timeout_ms), host]
+        return [_system32("ping.exe"), "-n", str(count), "-w", str(timeout_ms), host]
     return ["ping", "-c", str(count), "-W", str(math.ceil(timeout_ms / 1000)), host]
 
 
 def _default_runner(args: list[str]) -> bytes:
     # capture_output WITHOUT text=True -> raw bytes (localized codepages vary)
-    proc = subprocess.run(args, capture_output=True)
+    proc = subprocess.run(args, capture_output=True, timeout=SUBPROCESS_TIMEOUT_S)
     return proc.stdout + proc.stderr
 
 
@@ -66,6 +86,12 @@ def ping(host: str, count: int, timeout_ms: int, runner: Runner | None = None) -
     return parse(output, count)
 
 
+def _clamped(ping_cfg: dict) -> tuple[int, int]:
+    count = max(1, min(int(ping_cfg["count"]), MAX_COUNT))
+    timeout_ms = max(MIN_TIMEOUT_MS, min(int(ping_cfg["timeout_ms"]), MAX_TIMEOUT_MS))
+    return count, timeout_ms
+
+
 def collect_ping(
     conn: sqlite3.Connection,
     ts: str,
@@ -76,11 +102,17 @@ def collect_ping(
 ) -> list[Path]:
     """One row per configured target under the shared round timestamp."""
     ping_cfg = (cfg or config.probes())["ping"]
-    count, timeout_ms = int(ping_cfg["count"]), int(ping_cfg["timeout_ms"])
+    count, timeout_ms = _clamped(ping_cfg)
+    run = runner or _default_runner
     paths = []
     for label, host in ping_cfg["targets"].items():
-        result = ping(host, count, timeout_ms, runner)
-        parsed = {"target": label, "host": host, **result}
-        collect.insert_raw(conn, ts, device_id, DOMAIN, parsed)
+        output = run(_ping_cmd(host, count, timeout_ms))
+        # Raw insurance is the RAW output — a parser gap (unknown locale) must
+        # stay re-parseable after the fact; the parsed dict alone is not that.
+        collect.insert_raw(
+            conn, ts, device_id, DOMAIN,
+            {"target": label, "host": host, "text": output.decode("cp850", errors="replace")},
+        )
+        parsed = {"target": label, "host": host, **parse(output, count)}
         paths.append(collect.twin_write(conn, DOMAIN, TABLE, ts, device_id, parsed, log_dir))
     return paths

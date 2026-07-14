@@ -35,8 +35,20 @@ def _load(name: str) -> dict:
 
 
 def load_merged(name: str, defaults: dict) -> dict:
-    """Code defaults key-merged with the optional YAML override (YAML wins per key)."""
-    return {**defaults, **_load(name)}
+    """Code defaults key-merged with the optional YAML override (YAML wins per key).
+
+    Merges one level deep: a partial nested section (e.g. ``ping:`` naming only
+    ``targets``) keeps the unlisted defaults of that section instead of
+    wholesale-replacing it.
+    """
+    loaded = _load(name)
+    merged = {**defaults}
+    for key, value in loaded.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = {**merged[key], **value}
+        else:
+            merged[key] = value
+    return merged
 
 
 # Probe defaults for LaptopAndi (circle A). Per-device overrides via

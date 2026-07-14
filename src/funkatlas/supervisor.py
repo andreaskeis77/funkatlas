@@ -114,7 +114,10 @@ class Supervisor:
                     break
                 time.sleep(0.5)
         finally:
-            scheduler.shutdown(wait=False)
+            # wait=True: a job must never outlive run() — an in-flight tick
+            # re-resolving settings later could write into the wrong DB
+            # (second-writer risk). Jobs are seconds-bounded, so this is cheap.
+            scheduler.shutdown(wait=True)
 
 
 def main(argv: list[str] | None = None) -> int:
