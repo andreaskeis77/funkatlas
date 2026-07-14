@@ -37,3 +37,18 @@
   Event-Partition) · Konsistenz `logs == DB` gegen synthetische Domain (Registry-
   iterierend — neue Spalten automatisch abgedeckt) · raw-Roundtrip. 29 passed.
 - **Gate:** GESAMT: PASS. **Parks:** keine.
+
+## 2026-07-14 · Lauf 2 (M1) · T1.1 „wifi-status Probe"
+
+- **Gebaut:** `probes/wifi_status.py` (netsh-Parser: Bytes-Disziplin ohne text=True,
+  Decode-Kette utf-8→cp850→cp1252 — REALER Befund: Win11-Build liefert UTF-8, ältere
+  CP850; DE/EN-Nadeln je Feld; „AP BSSID" vs „BSSID" per Suffix; Komma+Punkt-Dezimal;
+  Ü-Mangling durch „bertragungsrate"-Substring umgangen) · Schema v2 additiv:
+  `stg_wifi_status` + Index (SCHEMA_VERSION 1→2 beweist die additive Migration am
+  lebenden Objekt) · Collector mit raw-Versicherung + twin_write je Interface.
+- **Fixtures:** echte LaptopAndi-Aufnahme sanitisiert (E11): SSID→REDACTED_SSID,
+  BSSIDs/MACs→aa:bb:cc:00:00:NN, GUID→0; UTF-8- UND CP850-Variante; synthetisches
+  EN-Fixture; DE-disconnected. Live-Nebenbefund: B2 bestätigt (2,4 GHz/Kanal 6/59 %).
+- **Tests:** Parser-Goldwerte DE/EN, CP850==UTF-8-Äquivalenz, disconnected-Degradation,
+  Garbage→[], Collector-Integration (raw+stg+JSONL, logs==DB je Registry). 36 passed.
+- **Parks:** keine.

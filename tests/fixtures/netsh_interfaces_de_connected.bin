@@ -1,0 +1,28 @@
+
+Es ist 1 Schnittstelle auf dem System vorhanden:
+
+    Name                   : WLAN
+    Beschreibung            : Intel(R) Wireless-AC 9560 160MHz
+    GUID                   : 00000000-0000-0000-0000-000000000000
+    Physische Adresse       : aa:bb:cc:00:00:02
+    Benutzeroberflächentyp         : Primär
+    Status                  : Verbunden
+    SSID                   : REDACTED_SSID
+    AP BSSID               : aa:bb:cc:00:00:01
+    Bereich                   : 2,4 GHz
+    Kanal                : 6
+    VerbundeneS Akm-Verschlüsselungsverfahren : [ akm = 00-0f-ac:02, Chiffre = 00-0f-ac:04 ]
+    Netzwerktyp            : Infrastruktur
+    Funktyp                   : 802.11n
+    Authentifizierung   : WPA2-Personal
+    Verschlüsselungsverfahren                 : CCMP
+    Verbindungsmodus        : Automat. Verbindung
+    Empfangsrate (MBit/s)  : 43.3
+    Übertragungsrate (MBit/s) : 52
+    Signal              : 59% 
+    RSSI                   : -69
+    Profil                 : REDACTED_SSID 
+    QoS MSCS konfiguriert         : 0
+    QoS-Zuordnung konfiguriert         : 0
+    Durch Richtlinie zugelassene QoS-Zuordnung   :  0
+

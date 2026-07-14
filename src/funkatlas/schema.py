@@ -25,10 +25,10 @@ from datetime import UTC, datetime
 
 from funkatlas import settings as _settings_mod
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Subset a future backup count-probe verifies after restore (keep in sync on rename).
-CORE_TABLES = ("raw_probe", "heartbeat")
+CORE_TABLES = ("raw_probe", "heartbeat", "stg_wifi_status")
 
 
 def now_utc_iso() -> str:
@@ -103,14 +103,40 @@ CREATE TABLE heartbeat (
 )
 """
 
+# Client-side WLAN interface state (netsh view). SSID/BSSID are stored in
+# clear text HERE ONLY (local DB/logs never leave the laptop — E11); anything
+# that enters the repo (fixtures, doc samples) is pseudonymized.
+_CREATE_STG_WIFI_STATUS_SQL = """
+CREATE TABLE stg_wifi_status (
+    ts_utc     TEXT NOT NULL,
+    device_id  TEXT NOT NULL,
+    interface  TEXT,
+    connected  INTEGER,
+    ssid       TEXT,
+    bssid      TEXT,
+    band       TEXT,
+    channel    INTEGER,
+    signal_pct INTEGER,
+    rssi_dbm   INTEGER,
+    rx_mbps    REAL,
+    tx_mbps    REAL,
+    radio_type TEXT
+)
+"""
+
 _FACT_TABLES: tuple[tuple[str, str], ...] = (
     ("raw_probe", _CREATE_RAW_PROBE_SQL),
     ("heartbeat", _CREATE_HEARTBEAT_SQL),
+    ("stg_wifi_status", _CREATE_STG_WIFI_STATUS_SQL),
 )
 
 _CREATE_INDEXES: tuple[tuple[str, str], ...] = (
     ("idx_raw_probe_dev_ts", "CREATE INDEX idx_raw_probe_dev_ts ON raw_probe(device_id, ts_utc)"),
     ("idx_heartbeat_dev_ts", "CREATE INDEX idx_heartbeat_dev_ts ON heartbeat(device_id, ts_utc)"),
+    (
+        "idx_stg_wifi_status_dev_ts",
+        "CREATE INDEX idx_stg_wifi_status_dev_ts ON stg_wifi_status(device_id, ts_utc)",
+    ),
 )
 
 
