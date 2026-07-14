@@ -23,3 +23,17 @@
   pytest · secret-scan). Hooks installiert (core.hooksPath → tools/hooks).
 - **Entscheidungen/Parks:** Baseline-Falsch-Positiv (Plan-Doku Zeile 69) akzeptiert
   und in PROJECT_STATE dokumentiert. Keine Parks.
+
+## 2026-07-14 · Lauf 1 (M0) · T0.2 „Minimal-Harvest: logsink + Collect-Kern"
+
+- **Gebaut:** `logsink.py` (Harvest mit Device-Dimension: `logs/metrics/<device_id>/
+  <domain>/<day>.jsonl`, append-only, kompakte sortierte Zeilen, ts_utc-Format-Guard
+  NEU — Recon-Risiko „blinder ts[:10]-Slice" adressiert; Event-Partition nach eigenem
+  event_ts; log_dir dynamisch über Settings-Modul-Attribut, NICHT import-gebunden —
+  Legacy-Bug WORKLOG wlan:39) · `collect.py` (Runden-Kern: `_COLUMNS`-Registry als
+  Single-Source, `register_domain` additiv mit Shape-Konflikt-Guard, `insert_raw`
+  Versicherung, `twin_write` DB↔JSONL aus demselben Dict).
+- **Tests:** logsink-Units (Partition, Pflichtfelder, Format-Guard, Append-Semantik,
+  Event-Partition) · Konsistenz `logs == DB` gegen synthetische Domain (Registry-
+  iterierend — neue Spalten automatisch abgedeckt) · raw-Roundtrip. 29 passed.
+- **Gate:** GESAMT: PASS. **Parks:** keine.
