@@ -1,0 +1,13 @@
+#!/bin/sh
+# Versioned pre-commit hook. Install once:
+#   git config core.hooksPath tools/hooks
+# (or run tools/install_git_hooks.ps1)
+ROOT="$(git rev-parse --show-toplevel)"
+if [ -x "$ROOT/.venv/Scripts/python.exe" ]; then
+  PY="$ROOT/.venv/Scripts/python.exe"
+elif [ -x "$ROOT/.venv/bin/python" ]; then
+  PY="$ROOT/.venv/bin/python"
+else
+  PY=python
+fi
+exec "$PY" "$ROOT/tools/precommit_check.py"

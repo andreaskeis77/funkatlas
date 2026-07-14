@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "funkatlas"
+description = "Multi-network WLAN analysis platform for the Keis household (private)"
+readme = "README.md"
+requires-python = ">=3.12"
+dynamic = ["version"]
+# Dependency set approved in EXECUTION_PLAN_M0_M1.md §13 D4 (go 2026-07-14).
+# fritzconnection is deliberately absent until M5 (router collectors).
+dependencies = [
+    "PyYAML>=6.0",         # config loaders (code defaults + optional YAML override)
+    "python-dotenv>=1.0",  # .env secrets/settings (optional, never crashes startup)
+    "APScheduler>=3.10,<4", # probe supervisor; 4.x API is incompatible (load-bearing pin)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "detect-secrets>=1.5",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "funkatlas.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+# Hermetic by default: network-touching tests (real router / real ping / real
+# speedtest) are opt-in only via the marker. Even a bare `pytest` is offline.
+addopts = "-m 'not network' -q"
+testpaths = ["tests"]
+markers = [
+    "unit: pure logic, no I/O",
+    "integration: components wired together against fixtures/tmp resources",
+    "consistency: data invariants (logs == DB, schema, text == DB)",
+    "ui: dashboard/browser tests (from M3)",
+    "network: touches real devices/network — opt-in only, never in the gate",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# Full advisory selection; the GATE only enforces the critical subset
+# (E9,F63,F7,F82 — see funkatlas/gate.py RUFF_CRITICAL).
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = ["E501"] # line length is advisory here, not a gate failure

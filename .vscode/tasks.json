@@ -1,0 +1,7 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "funkatlas: gate", "type": "shell", "command": "${workspaceFolder}\\funkatlas.cmd gate", "group": { "kind": "test", "isDefault": true } },
+    { "label": "funkatlas: test", "type": "shell", "command": "${workspaceFolder}\\funkatlas.cmd test" }
+  ]
+}
